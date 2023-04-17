@@ -102,10 +102,11 @@ void setup() {
   lcd.init();
   lcd.clear();
   lcd.backlight();
-  lcd.print(F("  Preparation"));
-  lcd.setCursor(0, 1);
   lcd.print(F("     System"));
+  lcd.setCursor(0, 1);
+  lcd.print(F(" Initialization"));
   delay(2000);
+  Serial.begin(9600);
   gpsSerial.begin(9600);
   GpsInfo();
   BTSerial.begin(9600);
@@ -117,7 +118,6 @@ void setup() {
   lcd.print(F(" Fall Detection "));
   lcd.setCursor(0, 1);
   lcd.print(F("     System  "));
-  Serial.begin(9600);
   sim.begin(9600);
   delay(1000);
 }
@@ -225,25 +225,25 @@ void GpsInfo() {
 void SendMessage() {
   GpsInfo();
   String SMS;
-  SMS = "Patient Fall Alert, bpm=" + (String)BPM + " and the site of the patient\r";
+  SMS = "Patient Fall Alert, bpm=" + (String)BPM + ".The site of the patient\r";
   SMS += "http://maps.google.com/maps?q=loc:";
   SMS += latitude + "," + logitude;
   if (b == 'S') SMS = "Medical assistance reached the patient with an ID " + (String)id + "\r";
   sim.listen();
-  delay(100);
-  sim.println("AT");
+  delay(1000);
+  sim.println("AT");  //Once the handshake test is successful, it will back to OK
   updateSerial();
-  sim.print("AT+CMGF=1\r");
+  sim.println("AT+CMGF=1");  // Configuring TEXT mode
   updateSerial();
-  sim.print("AT+CMGS=\"+218919774686\"\r");
+  sim.println("AT+CMGS=\"+218919774686\"");  //change ZZ with country code and xxxxxxxxxxx with phone number to sms
   updateSerial();
-  sim.print(SMS);
+  sim.print(SMS);  //text content
   updateSerial();
-  sim.write(0x1A);
   delay(500);
+  sim.write(26);
+  delay(5000);
   delay(500);
   sim.end();
-  Serial.println("Text Sent.");
   gps_st = 0;
   if (alert_cancel == 0) {
     lcd.clear();
@@ -282,9 +282,7 @@ void time_check() {
     stateStr[9] = "normal";
     digitalWrite(protector, LOW);
     lcd.clear();
-    lcd.print(F("     Normal"));
-    lcd.setCursor(0, 1);
-    lcd.print(F("    position"));
+    lcd.print(F("  Normal State"));
   }
   if (((millis() - lastRefreshTime) >= 2000) && (flag == 1) && (lastRefreshTime != 0)) {
     if (check == 1 && count >= 6 && alert_cancel == 0) {
