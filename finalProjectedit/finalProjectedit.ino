@@ -187,6 +187,7 @@ void loop() {
       alert_cancel = true;
       buttonPushCounter[1] = 1;
       if (stateStr[9] == "Fall") SendMessage();
+      b = " ";
     }
   }
   if ((millis() - now) >= 200) {
@@ -229,42 +230,45 @@ void SendMessage() {
   SMS += "http://maps.google.com/maps?q=loc:";
   SMS += latitude + "," + logitude;
   if (b == 'S') SMS = "Medical assistance reached the patient with an ID " + (String)id + "\r";
-  sim.listen();
-  delay(1000);
-  sim.println("AT");  //Once the handshake test is successful, it will back to OK
-  updateSerial();
-  sim.println("AT+CMGF=1");  // Configuring TEXT mode
-  updateSerial();
-  sim.println("AT+CMGS=\"+218919774686\"");  //change ZZ with country code and xxxxxxxxxxx with phone number to sms
-  updateSerial();
-  sim.print(SMS);  //text content
-  updateSerial();
-  delay(500);
-  sim.write(26);
-  delay(5000);
-  delay(500);
-  sim.end();
-  gps_st = 0;
+  
   if (alert_cancel == 0) {
     lcd.clear();
     lcd.print(F("  Patient Fall"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
-  } else {
+  }  
+  if(alert_cancel == 1){
     lcd.clear();
     lcd.print(F("  Medical cancel"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
+  
+  sim.listen();
+  delay(1000);
+  sim.println("AT"); 
+  updateSerial();
+  sim.println("AT+CMGF=1"); 
+  updateSerial();
+  sim.println("AT+CMGS=\"+218919774686\""); 
+  updateSerial();
+  sim.print(SMS);  
+  updateSerial();
+  delay(500);
+  sim.write(26);
+  delay(5000);
+  sim.end();
+  gps_st = 0;
+  
 }
 
 void updateSerial() {
   delay(500);
   while (Serial.available()) {
-    sim.write(Serial.read());  //Forward what Serial received to Software Serial Port
+    sim.write(Serial.read()); 
   }
   while (sim.available()) {
-    Serial.write(sim.read());  //Forward what Software Serial received to Serial Port
+    Serial.write(sim.read());  
   }
 }
 void time_check() {
