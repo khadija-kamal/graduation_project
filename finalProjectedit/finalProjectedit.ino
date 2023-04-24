@@ -90,7 +90,26 @@ void software_Reset() {
   asm volatile("  jmp 0");
 }
 
-
+void check_activate() {
+  int currentState = digitalRead(buttonPin1);
+  if (lastButtonState[0] != currentState) {
+    lastButtonState[0] = currentState;
+    if (currentState == HIGH) {
+      buttonPushCounter[0]++;
+      if (buttonPushCounter[0] == 3) buttonPushCounter[0] = 1;
+      if (buttonPushCounter[0] == 1) {
+        condition = true;
+        lcd.clear();
+        lcd.print(F(" System is Off"));
+        while (condition == 1) {
+          check_activate();
+        }
+      } else {
+        software_Reset();
+      }
+    }
+  }
+}
 void setup() {
   Wire.setClock(4000000);
   Wire.begin();
@@ -122,21 +141,7 @@ void setup() {
   delay(1000);
 }
 void loop() {
-
-  int currentState = digitalRead(buttonPin1);
-  if (lastButtonState[0] != currentState) {
-    lastButtonState[0] = currentState;
-    if (currentState == HIGH) {
-      buttonPushCounter[0]++;
-      if (buttonPushCounter[0] == 3) buttonPushCounter[0] = 1;
-      if (buttonPushCounter[0] == 1) {
-        condition = true;
-      } else {
-        software_Reset();
-      }
-    }
-  }
-
+  check_activate();
   if ((millis() - previousMillis) >= 10) {
     previousMillis = millis();
     reading = analogRead(0);
@@ -165,6 +170,7 @@ void loop() {
       if (buttonPushCounter[1] == 3) buttonPushCounter[1] = 1;
       if (buttonPushCounter[1] == 1) {
         alert_cancel = true;
+        if (stateStr[9] == "Fall") SendMessage(3);
       } else {
         alert_cancel = false;
       }
@@ -186,7 +192,7 @@ void loop() {
     if (b == 'S') {
       alert_cancel = true;
       buttonPushCounter[1] = 1;
-      if (stateStr[9] == "Fall") SendMessage();
+      if (stateStr[9] == "Fall") SendMessage(2);
       b = " ";
     }
   }
@@ -203,6 +209,7 @@ void loop() {
   PREampl = amplitude;
   delay(50);
 }
+
 
 void GpsInfo() {
   do {
@@ -223,52 +230,56 @@ void GpsInfo() {
 }
 
 
-void SendMessage() {
-  GpsInfo();
+void SendMessage(int m) {
   String SMS;
-  SMS = "Patient Fall Alert, bpm=" + (String)BPM + ".The site of the patient\r";
-  SMS += "http://maps.google.com/maps?q=loc:";
-  SMS += latitude + "," + logitude;
-  if (b == 'S') SMS = "Medical assistance reached the patient with an ID " + (String)id + "\r";
-  
-  if (alert_cancel == 0) {
+  if (m == 1) {
+    GpsInfo();
+    SMS = "Patient Fall Alert, with ID " + (String)id + " and bpm=" + (String)BPM + ".The site of the patient\r";
+    SMS += "http://maps.google.com/maps?q=loc:";
+    SMS += latitude + "," + logitude;
     lcd.clear();
     lcd.print(F("  Patient Fall"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
-  }  
-  if(alert_cancel == 1){
+  }
+  if (m == 2 && b == 'S') {
+    SMS = "Medical assistance reached the patient with an ID " + (String)id + "\r";
     lcd.clear();
     lcd.print(F("  Medical cancel"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
-  
+  if (m == 3) {
+    SMS = "The patient with an ID " + (String)id + " is alright" + "\r";
+    lcd.clear();
+    lcd.print(F("  Patient cancel"));
+    lcd.setCursor(0, 1);
+    lcd.print(F("     Alert"));
+  }
   sim.listen();
   delay(1000);
-  sim.println("AT"); 
+  sim.println("AT");
   updateSerial();
-  sim.println("AT+CMGF=1"); 
+  sim.println("AT+CMGF=1");
   updateSerial();
-  sim.println("AT+CMGS=\"+218919774686\""); 
+  sim.println("AT+CMGS=\"+218919774686\"");
   updateSerial();
-  sim.print(SMS);  
+  sim.print(SMS);
   updateSerial();
   delay(500);
   sim.write(26);
   delay(5000);
   sim.end();
   gps_st = 0;
-  
 }
 
 void updateSerial() {
   delay(500);
   while (Serial.available()) {
-    sim.write(Serial.read()); 
+    sim.write(Serial.read());
   }
   while (sim.available()) {
-    Serial.write(sim.read());  
+    Serial.write(sim.read());
   }
 }
 void time_check() {
@@ -293,7 +304,7 @@ void time_check() {
       digitalWrite(buzzer, HIGH);
       digitalWrite(protector, HIGH);
       stateStr[9] = "Fall";
-      SendMessage();
+      SendMessage(1);
     }
     lastRefreshTime = 0;
     flag = 0;
@@ -303,7 +314,7 @@ void time_check() {
       digitalWrite(buzzer, HIGH);
       digitalWrite(protector, HIGH);
       stateStr[9] = "Fall";
-      SendMessage();
+      SendMessage(1);
     }
     larefresh = 0;
     count = 0;
