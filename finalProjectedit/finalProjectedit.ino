@@ -10,6 +10,9 @@
 #define LowerThreshold 490
 #define id 1
 #define protector 5
+String number = "+218915247824"; //-> change with your number
+int _timeout;
+String _buffer;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 TinyGPSPlus gps;
@@ -62,7 +65,7 @@ const char* stateStr[] = { "F",
                            "LF",
                            "RB",
                            "RF",
-                           "normal" };
+                           "Normal" };
 State st = N;
 
 void mpu_read(void) {
@@ -104,6 +107,7 @@ void check_button() {
     if (counter2 == 1) {
       onetime = 1;
       alert_cancel = true;
+      digitalWrite(buzzer, LOW);
     }
     if (counter2 == 2) alert_cancel = false;
   }
@@ -113,6 +117,7 @@ void callsms() {
 }
 
 void setup() {
+  _buffer.reserve(50);
   lcd.init();
   lcd.clear();
   lcd.backlight();
@@ -122,6 +127,8 @@ void setup() {
   Serial.begin(9600);
   gpsSerial.begin(9600);
   GpsInfo();
+  sim.begin(9600);
+  delay(1000);
   BTSerial.begin(9600);
   pinMode(buttonPin1, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(buttonPin1), check_activate, FALLING);
@@ -133,8 +140,6 @@ void setup() {
   lcd.print(F(" Fall Detection "));
   lcd.setCursor(0, 1);
   lcd.print(F("     System  "));
-  sim.begin(9600);
-  delay(1000);
   Wire.setClock(4000000);
   Wire.begin();
   delay(250);
@@ -152,11 +157,13 @@ void loop() {
     while (1);
   }
   if (condition == 0) {
+
     if (stateStr[9] == "Fall" && alert_cancel == 1 && onetime == 1) {
       onetime = 0;
       SendMessage(3);
     }
-
+     if (sim.available() > 0)
+    Serial.write(sim.read());
     if ((millis() - previousMillis) >= 10) {
       previousMillis = millis();
       reading = analogRead(0);
@@ -206,13 +213,7 @@ void loop() {
       String btsend = (String)id + "," + (String)stateStr[9] + "," + (String)BPM;
       BTSerial.println(btsend);
     }
-    if (alert_cancel == 1) {
-      digitalWrite(buzzer, LOW);
-      delay(50);
-    }
 
-    Serial.print(stateStr[st]);
-    Serial.println(F(" "));
     time_check();
     PREampl = amplitude;
     delay(50);
@@ -239,57 +240,57 @@ void GpsInfo() {
   } while (gps_st != -1);
 }
 
-
 void SendMessage(int m) {
   String SMS;
+  lcd.clear();
   if (m == 1) {
     GpsInfo();
     SMS = "Patient Fall Alert, with ID " + (String)id + " and bpm=" + (String)BPM + ".The site of the patient\r";
     SMS += "http://maps.google.com/maps?q=loc:";
     SMS += latitude + "," + logitude;
-    lcd.clear();
     lcd.print(F("  Patient Fall"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
   if (m == 2 && b == 'S') {
-    SMS = "Medical assistance reached the patient with an ID " + (String)id + "\r";
-    lcd.clear();
-    lcd.print(F("  Medical cancel"));
+    digitalWrite(buzzer, LOW);
+    SMS = "Medical assistance reached the patient with an ID " + (String)id;
+    lcd.print(F(" Medical cancel"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
   if (m == 3) {
-    SMS = "The patient with an ID " + (String)id + " is alright" + "\r";
-    lcd.clear();
+    SMS = "The patient with an ID " + (String)id + " is alright";
     lcd.print(F(" Patient cancel"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
-  
+
   sim.listen();
-  sim.println("AT");
-  updateSerial();
-  sim.println("AT+CMGF=1");
-  updateSerial();
-  sim.println("AT+CMGS=\"+218919774686\"");
-  updateSerial();
-  sim.print(SMS);
-  updateSerial();
-  delay(500);
-  sim.write(26);
-  delay(10000);
-  // sim.end();
+  sim.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);
+  Serial.println ("SMS is Sending");
+  sim.println("AT+CMGS=\"" + number + "\"\r"); //Mobile phone number to send message
+  delay(1000);
+  sim.println(SMS);
+  delay(100);
+  sim.println((char)26);// ASCII code of CTRL+Z
+  delay(1000);
+  _buffer = _readSerial();
   gps_st = 0;
+  SMS = " ";
 }
 
-void updateSerial() {
-  delay(500);
-  while (Serial.available()) {
-    sim.write(Serial.read());
+
+String _readSerial() {
+  _timeout = 0;
+  while  (!sim.available() && _timeout < 12000  )
+  {
+    delay(13);
+    _timeout++;
   }
-  while (sim.available()) {
-    Serial.write(sim.read());
+  if (sim.available()) {
+    return sim.readString();
   }
 }
 void time_check() {
@@ -304,25 +305,29 @@ void time_check() {
   } else {
     count = 0;
     check = 0;
-    stateStr[9] = "normal";
+    stateStr[9] = "Normal";
     digitalWrite(protector, LOW);
   }
   if (((millis() - lastRefreshTime) >= 2000) && (flag == 1) && (lastRefreshTime != 0)) {
-    if (check == 1 && count >= 6 && alert_cancel == 0) {
+    if (check == 1 && count >= 6) {
+      stateStr[9] = "Fall";
+      if(alert_cancel == 0){
       digitalWrite(buzzer, HIGH);
       digitalWrite(protector, HIGH);
-      stateStr[9] = "Fall";
       SendMessage(1);
+      }
     }
     lastRefreshTime = 0;
     flag = 0;
   }
   if (((millis() - larefresh) >= 60000) && (larefresh != 0)) {
-    if (check == 1 && alert_cancel == 0) {
+    if (check == 1 ) {
+      stateStr[9] = "Fall";
+      if(alert_cancel == 0){
       digitalWrite(buzzer, HIGH);
       digitalWrite(protector, HIGH);
-      stateStr[9] = "Fall";
       SendMessage(1);
+      }
     }
     larefresh = 0;
     count = 0;
