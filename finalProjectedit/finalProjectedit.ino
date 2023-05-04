@@ -92,7 +92,7 @@ void mpu_read(void) {
 }
 
 
-void check_activate() {
+void ISR_1() {
   if (digitalRead(buttonPin1) == LOW) {
     counter1++;
     if (counter1 == 3) counter1 = 1;
@@ -100,7 +100,7 @@ void check_activate() {
     if (counter1 == 2) asm volatile("  jmp 0");
   }
 }
-void check_button() {
+void ISR_2() {
   if (digitalRead(buttonPin2) == LOW) {
     counter2++;
     if (counter2 == 3) counter2 = 1;
@@ -113,8 +113,7 @@ void check_button() {
   }
 }
 
-void callsms() {
-}
+
 
 void setup() {
   _buffer.reserve(50);
@@ -131,9 +130,9 @@ void setup() {
   delay(1000);
   BTSerial.begin(9600);
   pinMode(buttonPin1, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(buttonPin1), check_activate, FALLING);
+  attachInterrupt(digitalPinToInterrupt(buttonPin1), ISR_1, FALLING);
   pinMode(buttonPin2, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(buttonPin2), check_button, FALLING);
+  attachInterrupt(digitalPinToInterrupt(buttonPin2), ISR_2, FALLING);
   pinMode(buzzer, OUTPUT);
   pinMode(protector, OUTPUT);
   lcd.clear();
@@ -162,8 +161,7 @@ void loop() {
       onetime = 0;
       SendMessage(3);
     }
-     if (sim.available() > 0)
-    Serial.write(sim.read());
+    if (sim.available() > 0) Serial.write(sim.read());
     if ((millis() - previousMillis) >= 10) {
       previousMillis = millis();
       reading = analogRead(0);
