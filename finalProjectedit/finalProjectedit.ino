@@ -10,7 +10,7 @@
 #define LowerThreshold 490
 #define id 1
 #define protector 5
-String number = "+218915247824"; //-> change with your number
+String number = "+218915247824"; 
 int _timeout;
 String _buffer;
 
