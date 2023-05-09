@@ -9,7 +9,7 @@
 #define UpperThreshold 518
 #define LowerThreshold 490
 #define id 1
-#define protector 5
+#define protector 4
 String number = "+218915247824"; 
 int _timeout;
 String _buffer;
@@ -149,6 +149,8 @@ void setup() {
 }
 void loop() {
   if (condition == 1) {
+    digitalWrite(buzzer, LOW);
+    digitalWrite(protector, LOW);
     lcd.clear();
     lcd.print(F("System is turned"));
     lcd.setCursor(0, 1);
@@ -183,20 +185,20 @@ void loop() {
         lcd.clear();
         lcd.print(String("State: ") + String(stateStr[9]));
         lcd.setCursor(0, 1);
-        lcd.print(String("pulse: ") + String(BPM));
+        lcd.print(String("Pulse: ") + String(BPM));
       }
     }
 
     mpu_read();
     if ((ax >= -1.30) && (ax <= 4.30) && (ay <= 2.50) && (ay >= -1.30) && (az <= 7.50) && (az >= -3.30)) st = N;
-    if ((ax >= -0.20) && (ax <= 0.38) && (ay <= -0.40) && (ay >= -0.88) && (az >= 0.26) && (az <= 0.88)) st = RB;
-    if ((ax >= -0.20) && (ax <= 0.38) && (ay <= -0.40) && (ay >= -0.88) && (az >= -0.88) && (az <= -0.26)) st = RF;
-    if ((ax >= -0.20) && (ax <= 0.38) && (ay <= 0.88) && (ay >= 0.40) && (az >= 0.26) && (az <= 0.88)) st = BL;
-    if ((ax >= -0.20) && (ax <= 0.38) && (ay <= 0.88) && (ay >= 0.40) && (az <= -0.26) && (az >= -0.88)) st = LF;
-    if ((ax >= -0.30) && (ax <= 0.30) && (ay >= 0.80) && (ay <= 1.20) && (az <= 0.56) && (az >= -0.56)) st = L;
-    if ((ax >= -0.30) && (ax <= 0.30) && (ay <= 0.68) && (ay >= -0.68) && (az <= 1.20) && (az >= 0.80)) st = B;
-    if ((ax >= -0.30) && (ax <= 0.30) && (ay <= 0.68) && (ay >= -0.68) && (az <= -0.80) && (az >= -1.20)) st = F;
-    if ((ax >= -0.30) && (ax <= 0.30) && (ay <= -0.80) && (ay >= -1.20) && (az <= 0.56) && (az >= -0.56)) st = R;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) && (az >= 0.26) && (az <= 0.88)) st = RB;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) &&  (az >= -0.88) && (az <= -0.26)) st = RF;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.88) && (ay >= 0.35) && (az >= 0.26) && (az <= 0.88)) st = BL;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.88) && (ay >= 0.35) && (az <= -0.26) && (az >= -0.88)) st = LF;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay >= 0.80) && (ay <= 1.20) && (az <= 0.68) && (az >= -0.68)) st = L;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.68) && (ay >= -0.68) && (az <= 1.20) && (az >= 0.80)) st = B;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.68) && (ay >= -0.68) && (az <= -0.80) && (az >= -1.20)) st = F;
+    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.80) && (ay >= -1.20) && (az <= 0.68) && (az >= -0.68)) st = R;
     BTSerial.listen();
     if (BTSerial.available() > 0) {
       b = BTSerial.read();
@@ -213,6 +215,7 @@ void loop() {
     }
 
     time_check();
+    Serial.println(amplitude);
     PREampl = amplitude;
     delay(50);
   }
@@ -229,6 +232,8 @@ void GpsInfo() {
           logitude = String(gps.location.lng(), 6);
           gps_st = -1;
           // gpsSerial.end();
+      // Serial.println(gps_st);
+
         } else {
           delay(1000);
           ++gps_st;
