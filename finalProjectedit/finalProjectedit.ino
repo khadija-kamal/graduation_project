@@ -116,6 +116,7 @@ void ISR_2() {
 
 
 void setup() {
+  Serial.begin(9600);
   _buffer.reserve(50);
   lcd.init();
   lcd.clear();
@@ -123,7 +124,6 @@ void setup() {
   lcd.print(F("     System"));
   lcd.setCursor(0, 1);
   lcd.print(F(" Initialization"));
-  Serial.begin(9600);
   gpsSerial.begin(9600);
   GpsInfo();
   sim.begin(9600);
@@ -163,7 +163,7 @@ void loop() {
       onetime = 0;
       SendMessage(3);
     }
-    if (sim.available() > 0) Serial.write(sim.read());
+    mpu_read();
     if ((millis() - previousMillis) >= 10) {
       previousMillis = millis();
       reading = analogRead(0);
@@ -189,7 +189,6 @@ void loop() {
       }
     }
 
-    mpu_read();
     if ((ax >= -1.30) && (ax <= 4.30) && (ay <= 2.50) && (ay >= -1.30) && (az <= 7.50) && (az >= -3.30)) st = N;
     if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) && (az >= 0.26) && (az <= 0.88)) st = RB;
     if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) &&  (az >= -0.88) && (az <= -0.26)) st = RF;
@@ -208,7 +207,7 @@ void loop() {
         b = " ";
       }
     }
-    if ((millis() - now) >= 200) {
+    if ((millis() - now) >= 1000) {
       now = millis();
       String btsend = (String)id + "," + (String)stateStr[9] + "," + (String)BPM;
       BTSerial.println(btsend);
@@ -216,6 +215,8 @@ void loop() {
 
     time_check();
     Serial.println(amplitude);
+    
+
     PREampl = amplitude;
     delay(50);
   }
@@ -231,9 +232,6 @@ void GpsInfo() {
           latitude = String(gps.location.lat(), 6);
           logitude = String(gps.location.lng(), 6);
           gps_st = -1;
-          // gpsSerial.end();
-      // Serial.println(gps_st);
-
         } else {
           delay(1000);
           ++gps_st;
@@ -270,18 +268,21 @@ void SendMessage(int m) {
   }
 
   sim.listen();
-  sim.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  sim.println("AT+CMGF=1");    
   delay(1000);
   Serial.println ("SMS is Sending");
-  sim.println("AT+CMGS=\"" + number + "\"\r"); //Mobile phone number to send message
+  sim.println("AT+CMGS=\"" + number + "\"\r"); 
   delay(1000);
   sim.println(SMS);
   delay(100);
-  sim.println((char)26);// ASCII code of CTRL+Z
+  sim.println((char)26);
   delay(1000);
+  if (sim.available() > 0) Serial.write(sim.read());
   _buffer = _readSerial();
   gps_st = 0;
   SMS = " ";
+  
+
 }
 
 
