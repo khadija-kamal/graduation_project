@@ -10,16 +10,11 @@
 #define LowerThreshold 490
 #define id 1
 #define protector 4
-String number = "+218915247824"; 
-int _timeout;
-String _buffer;
-
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 TinyGPSPlus gps;
 SoftwareSerial gpsSerial(7, 6);
 SoftwareSerial sim(10, 11);
 SoftwareSerial BTSerial(9, 8);
-
 bool IgnoreReading = false;
 bool FirstPulseDetected = false;
 unsigned long FirstPulseTime = 0;
@@ -46,7 +41,6 @@ bool alert_cancel = false;
 int counter1 = 0;
 int counter2 = 0;
 int onetime = 0;
-
 enum State { F,
              L,
              B,
@@ -56,6 +50,7 @@ enum State { F,
              LF,
              RB,
              RF };
+
 const char* stateStr[] = { "F",
                            "L",
                            "B",
@@ -91,7 +86,6 @@ void mpu_read(void) {
   amplitude = raw_amplitude * 10;
 }
 
-
 void ISR_1() {
   if (digitalRead(buttonPin1) == LOW) {
     counter1++;
@@ -100,6 +94,7 @@ void ISR_1() {
     if (counter1 == 2) asm volatile("  jmp 0");
   }
 }
+
 void ISR_2() {
   if (digitalRead(buttonPin2) == LOW) {
     counter2++;
@@ -113,11 +108,8 @@ void ISR_2() {
   }
 }
 
-
-
 void setup() {
   Serial.begin(9600);
-  _buffer.reserve(50);
   lcd.init();
   lcd.clear();
   lcd.backlight();
@@ -125,7 +117,7 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print(F(" Initialization"));
   gpsSerial.begin(9600);
-  GpsInfo();
+  // GpsInfo();
   sim.begin(9600);
   delay(1000);
   BTSerial.begin(9600);
@@ -188,16 +180,19 @@ void loop() {
         lcd.print(String("Pulse: ") + String(BPM));
       }
     }
-
+    if (sim.available()) {
+      delay(1000);
+      Serial.println(sim.readString());
+    }
     if ((ax >= -1.30) && (ax <= 4.30) && (ay <= 2.50) && (ay >= -1.30) && (az <= 7.50) && (az >= -3.30)) st = N;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) && (az >= 0.26) && (az <= 0.88)) st = RB;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.35) && (ay >= -0.88) &&  (az >= -0.88) && (az <= -0.26)) st = RF;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.88) && (ay >= 0.35) && (az >= 0.26) && (az <= 0.88)) st = BL;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.88) && (ay >= 0.35) && (az <= -0.26) && (az >= -0.88)) st = LF;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay >= 0.80) && (ay <= 1.20) && (az <= 0.68) && (az >= -0.68)) st = L;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.68) && (ay >= -0.68) && (az <= 1.20) && (az >= 0.80)) st = B;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= 0.68) && (ay >= -0.68) && (az <= -0.80) && (az >= -1.20)) st = F;
-    if ((ax >= -0.33) && (ax <= 0.33) && (ay <= -0.80) && (ay >= -1.20) && (az <= 0.68) && (az >= -0.68)) st = R;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= -0.35) && (ay >= -0.88) && (az >= 0.26) && (az <= 0.88)) st = RB;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= -0.35) && (ay >= -0.88) && (az >= -0.88) && (az <= -0.26)) st = RF;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= 0.88) && (ay >= 0.35) && (az >= 0.26) && (az <= 0.88)) st = BL;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= 0.88) && (ay >= 0.35) && (az <= -0.26) && (az >= -0.88)) st = LF;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay >= 0.80) && (ay <= 1.20) && (az <= 0.68) && (az >= -0.68)) st = L;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= 0.68) && (ay >= -0.68) && (az <= 1.20) && (az >= 0.80)) st = B;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= 0.68) && (ay >= -0.68) && (az <= -0.80) && (az >= -1.20)) st = F;
+    if ((ax >= -0.38) && (ax <= 0.38) && (ay <= -0.80) && (ay >= -1.20) && (az <= 0.68) && (az >= -0.68)) st = R;
     BTSerial.listen();
     if (BTSerial.available() > 0) {
       b = BTSerial.read();
@@ -214,14 +209,24 @@ void loop() {
     }
 
     time_check();
-    Serial.println(amplitude);
-    
+    Serial.print(amplitude);
+    Serial.print(F("\t"));
+    Serial.print(stateStr[st]);
+    Serial.print(F("\t"));
+    Serial.print(stateStr[9]);
+    Serial.println(" ");
 
     PREampl = amplitude;
     delay(50);
   }
 }
 
+String readSerial() {
+  delay(100);
+  if (sim.available()) {
+    return sim.readString();
+  }
+}
 
 void GpsInfo() {
   do {
@@ -246,7 +251,11 @@ void SendMessage(int m) {
   lcd.clear();
   if (m == 1) {
     GpsInfo();
-    SMS = "Patient Fall Alert, with ID " + (String)id + " and bpm=" + (String)BPM + ".The site of the patient\r";
+    if (stateStr[st] == "F") {
+      SMS = "Fall Alert, Patient with ID " + (String)id + " felldown forward and bpm=" + (String)BPM + ".The site of the patient\r";
+    } else {
+      SMS = "Fall Alert, Patient with ID " + (String)id + " and bpm=" + (String)BPM + ".The site of the patient\r";
+    }
     SMS += "http://maps.google.com/maps?q=loc:";
     SMS += latitude + "," + logitude;
     lcd.print(F("  Patient Fall"));
@@ -266,37 +275,22 @@ void SendMessage(int m) {
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
-
   sim.listen();
-  sim.println("AT+CMGF=1");    
-  delay(1000);
-  Serial.println ("SMS is Sending");
-  sim.println("AT+CMGS=\"" + number + "\"\r"); 
-  delay(1000);
+  sim.println("AT");
+  Serial.println(readSerial());
+  sim.println("AT+CMGF=1");
+  Serial.println(readSerial());
+  sim.println("AT+CMGS=\"+218919774686\"");
+  Serial.println(readSerial());
   sim.println(SMS);
-  delay(100);
   sim.println((char)26);
-  delay(1000);
-  if (sim.available() > 0) Serial.write(sim.read());
-  _buffer = _readSerial();
+  Serial.println(readSerial());
   gps_st = 0;
   SMS = " ";
-  
-
 }
 
 
-String _readSerial() {
-  _timeout = 0;
-  while  (!sim.available() && _timeout < 12000  )
-  {
-    delay(13);
-    _timeout++;
-  }
-  if (sim.available()) {
-    return sim.readString();
-  }
-}
+
 void time_check() {
   if ((amplitude - PREampl) >= 6) {
     flag = 1;
@@ -315,22 +309,22 @@ void time_check() {
   if (((millis() - lastRefreshTime) >= 2000) && (flag == 1) && (lastRefreshTime != 0)) {
     if (check == 1 && count >= 6) {
       stateStr[9] = "Fall";
-      if(alert_cancel == 0){
-      digitalWrite(buzzer, HIGH);
-      digitalWrite(protector, HIGH);
-      SendMessage(1);
+      if (alert_cancel == 0) {
+        // digitalWrite(buzzer, HIGH);
+        digitalWrite(protector, HIGH);
+        // SendMessage(1);
       }
     }
     lastRefreshTime = 0;
     flag = 0;
   }
   if (((millis() - larefresh) >= 60000) && (larefresh != 0)) {
-    if (check == 1 ) {
+    if (check == 1) {
       stateStr[9] = "Fall";
-      if(alert_cancel == 0){
-      digitalWrite(buzzer, HIGH);
-      digitalWrite(protector, HIGH);
-      SendMessage(1);
+      if (alert_cancel == 0) {
+        // digitalWrite(buzzer, HIGH);
+        digitalWrite(protector, HIGH);
+        // SendMessage(1);
       }
     }
     larefresh = 0;
