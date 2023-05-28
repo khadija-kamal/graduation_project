@@ -117,7 +117,7 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print(F(" Initialization"));
   gpsSerial.begin(9600);
-  GpsInfo();
+  // GpsInfo();
   sim.begin(9600);
   delay(1000);
   BTSerial.begin(9600);
@@ -173,7 +173,7 @@ void loop() {
       if (reading < LowerThreshold && IgnoreReading == true) IgnoreReading = false;
       if ((millis() - previousMillis2) >= 1000) {
         previousMillis2 = millis();
-        BPM = (1.0 / PulseInterval) * 60.0 * 1000;
+        BPM =   (1.0 / PulseInterval) * 60.0 * 1000;
         lcd.clear();
         lcd.print(String("State: ") + String(stateStr[9]));
         lcd.setCursor(0, 1);
@@ -275,6 +275,7 @@ void SendMessage(int m) {
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
   }
+  delay(1000);
   sim.listen();
   sim.println("AT");
   Serial.println(readSerial());
@@ -288,6 +289,7 @@ void SendMessage(int m) {
   delay(2000);
   gps_st = 0;
   SMS = " ";
+  delay(1000);
 }
 
 
@@ -312,9 +314,9 @@ void time_check() {
     if (check == 1 && count >= 6) {
       stateStr[9] = "Fall";
       if (alert_cancel == 0) {
-        digitalWrite(buzzer, HIGH);
+        // digitalWrite(buzzer, HIGH);
         digitalWrite(protector, HIGH);
-        SendMessage(1);
+        // SendMessage(1);
       }
     }
     lastRefreshTime = 0;
@@ -324,9 +326,9 @@ void time_check() {
     if (check == 1) {
       stateStr[9] = "Fall";
       if (alert_cancel == 0) {
-        digitalWrite(buzzer, HIGH);
+        // digitalWrite(buzzer, HIGH);
         digitalWrite(protector, HIGH);
-        SendMessage(1);
+        // SendMessage(1);
       }
     }
     larefresh = 0;
