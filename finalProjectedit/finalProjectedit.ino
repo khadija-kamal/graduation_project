@@ -117,7 +117,7 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print(F(" Initialization"));
   gpsSerial.begin(9600);
-  // GpsInfo();
+  GpsInfo();
   sim.begin(9600);
   delay(1000);
   BTSerial.begin(9600);
@@ -212,8 +212,6 @@ void loop() {
     Serial.print(amplitude);
     Serial.print(F("\t"));
     Serial.print(stateStr[st]);
-    Serial.print(F("\t"));
-    Serial.print(stateStr[9]);
     Serial.println(" ");
 
     PREampl = amplitude;
@@ -241,6 +239,7 @@ void GpsInfo() {
           delay(1000);
           ++gps_st;
         }
+      // Serial.println(gps_st);
       }
 
   } while (gps_st != -1);
@@ -252,9 +251,9 @@ void SendMessage(int m) {
   if (m == 1) {
     GpsInfo();
     if (stateStr[st] == "F") {
-      SMS = "Fall Alert: Patient ID " + (String)id + " fell forward with a BPM of " + (String)BPM + ".Location of the patient\r";
+      SMS = "Patient Fall Alert: with ID " + (String)id + " fell forward, BPM of " + (String)BPM + ".Location of the patient\r";
     } else {
-      SMS = "Fall Alert: Patient ID " + (String)id + "with a BPM of" + (String)BPM + ".Location of the patient\r";
+      SMS = "Patient Fall Alert: with ID " + (String)id + "and BPM of" + (String)BPM + ".Location of the patient\r";
     }
     SMS += "http://maps.google.com/maps?q=loc:";
     SMS += latitude + "," + logitude;
@@ -264,7 +263,7 @@ void SendMessage(int m) {
   }
   if (m == 2 && b == 'S') {
     digitalWrite(buzzer, LOW);
-    SMS = "Medical assistance reached the patient with an ID " + (String)id;
+    SMS = "Medical assistant has reached the patient with ID " + (String)id;
     lcd.print(F(" Medical cancel"));
     lcd.setCursor(0, 1);
     lcd.print(F("     Alert"));
@@ -281,15 +280,16 @@ void SendMessage(int m) {
   Serial.println(readSerial());
   sim.println("AT+CMGF=1");
   Serial.println(readSerial());
-  sim.println("AT+CMGS=\"+218919774686\"");
+  sim.println("AT+CMGS=\"+218915247824\"");
   Serial.println(readSerial());
   sim.println(SMS);
   sim.println((char)26);
   Serial.println(readSerial());
-  delay(2000);
   gps_st = 0;
   SMS = " ";
   delay(1000);
+  delay(3000);
+
 }
 
 
@@ -314,9 +314,9 @@ void time_check() {
     if (check == 1 && count >= 6) {
       stateStr[9] = "Fall";
       if (alert_cancel == 0) {
-        // digitalWrite(buzzer, HIGH);
+        digitalWrite(buzzer, HIGH);
         digitalWrite(protector, HIGH);
-        // SendMessage(1);
+        SendMessage(1);
       }
     }
     lastRefreshTime = 0;
@@ -326,9 +326,9 @@ void time_check() {
     if (check == 1) {
       stateStr[9] = "Fall";
       if (alert_cancel == 0) {
-        // digitalWrite(buzzer, HIGH);
+        digitalWrite(buzzer, HIGH);
         digitalWrite(protector, HIGH);
-        // SendMessage(1);
+        SendMessage(1);
       }
     }
     larefresh = 0;
