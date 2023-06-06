@@ -131,6 +131,7 @@ void setup() {
   lcd.print(F(" Fall Detection "));
   lcd.setCursor(0, 1);
   lcd.print(F("     System  "));
+  delay(500);
   Wire.setClock(4000000);
   Wire.begin();
   delay(250);
@@ -171,9 +172,10 @@ void loop() {
         IgnoreReading = true;
       }
       if (reading < LowerThreshold && IgnoreReading == true) IgnoreReading = false;
+
       if ((millis() - previousMillis2) >= 1000) {
-        previousMillis2 = millis();
         BPM =   (1.0 / PulseInterval) * 60.0 * 1000;
+        previousMillis2 = millis();
         lcd.clear();
         lcd.print(String("State: ") + String(stateStr[9]));
         lcd.setCursor(0, 1);
@@ -238,8 +240,9 @@ void GpsInfo() {
         } else {
           delay(1000);
           ++gps_st;
+          Serial.println(gps_st);
+
         }
-      // Serial.println(gps_st);
       }
 
   } while (gps_st != -1);
@@ -251,9 +254,9 @@ void SendMessage(int m) {
   if (m == 1) {
     GpsInfo();
     if (stateStr[st] == "F") {
-      SMS = "Patient Fall Alert: with ID " + (String)id + " fell forward, BPM of " + (String)BPM + ".Location of the patient\r";
+      SMS = "Fall Alert: patient with ID " + (String)id + ", fell forward and BPM of " + (String)BPM + ".Location of the patient\r";
     } else {
-      SMS = "Patient Fall Alert: with ID " + (String)id + "and BPM of" + (String)BPM + ".Location of the patient\r";
+      SMS = "Fall Alert: patient with ID " + (String)id + "and BPM of" + (String)BPM + ".Location of the patient\r";
     }
     SMS += "http://maps.google.com/maps?q=loc:";
     SMS += latitude + "," + logitude;
@@ -278,9 +281,13 @@ void SendMessage(int m) {
   sim.listen();
   sim.println("AT");
   Serial.println(readSerial());
+  sim.println("AT+CBC");
+  Serial.println(readSerial());
+  sim.println("AT+CSQ");
+  Serial.println(readSerial());
   sim.println("AT+CMGF=1");
   Serial.println(readSerial());
-  sim.println("AT+CMGS=\"+218915247824\"");
+  sim.println("AT+CMGS=\"+218925247824\"");
   Serial.println(readSerial());
   sim.println(SMS);
   sim.println((char)26);
