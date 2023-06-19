@@ -215,7 +215,6 @@ void loop() {
     Serial.print(F("\t"));
     Serial.print(stateStr[st]);
     Serial.println(" ");
-
     PREampl = amplitude;
     delay(50);
   }
@@ -239,12 +238,10 @@ void GpsInfo() {
           gps_st = -1;
         } else {
           delay(1000);
-          ++gps_st;
           Serial.println(gps_st);
-
+          ++gps_st;
         }
       }
-
   } while (gps_st != -1);
 }
 
@@ -253,10 +250,11 @@ void SendMessage(int m) {
   lcd.clear();
   if (m == 1) {
     GpsInfo();
+    delay(500);
     if (stateStr[st] == "F") {
-      SMS = "Fall Alert: patient with ID " + (String)id + ", fell forward and BPM of " + (String)BPM + ".Location of the patient\r";
+      SMS = "Fall Alert:patient with ID " + (String)id + ", fell forward and BPM of " + (String)BPM + ".Location of the patient\r";
     } else {
-      SMS = "Fall Alert: patient with ID " + (String)id + "and BPM of" + (String)BPM + ".Location of the patient\r";
+      SMS = "Fall Alert:patient with ID " + (String)id + "and BPM of " + (String)BPM + ".Location of the patient\r";
     }
     SMS += "http://maps.google.com/maps?q=loc:";
     SMS += latitude + "," + logitude;
@@ -280,10 +278,6 @@ void SendMessage(int m) {
   delay(1000);
   sim.listen();
   sim.println("AT");
-  Serial.println(readSerial());
-  sim.println("AT+CBC");
-  Serial.println(readSerial());
-  sim.println("AT+CSQ");
   Serial.println(readSerial());
   sim.println("AT+CMGF=1");
   Serial.println(readSerial());
